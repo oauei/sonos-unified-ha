@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonos Unified - Acoustic Sync Calibration</title>
+  <style>
+    :root {
+      --primary: #03a9f4;
+      --primary-dark: #0288d1;
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --text-muted: #9e9e9e;
+      --success: #4caf50;
+      --accent: #ff9800;
+      --border: #333;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 520px;
+      width: 100%;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+    .badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .step-card {
+      background: #252525;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid var(--primary);
+    }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+    .btn-secondary {
+      background: #333;
+      color: #eee;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { background: #444; }
+    canvas {
+      width: 100%;
+      height: 70px;
+      background: #000;
+      border-radius: 8px;
+      margin: 14px 0;
+      display: block;
+    }
+    .status {
+      text-align: center;
+      font-weight: 500;
+      min-height: 24px;
+      margin: 12px 0;
+      font-size: 0.95rem;
+    }
+    .status.highlight { color: var(--accent); }
+    .status.success { color: var(--success); }
+    .slider-box {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .result-box {
+      display: none;
+      background: #193219;
+      border: 1px solid var(--success);
+      padding: 16px;
+      border-radius: 12px;
+      margin: 16px 0;
+      text-align: center;
+    }
+    .result-box h3 { margin: 0 0 6px 0; color: var(--success); font-size: 1.1rem; }
+    .result-val { font-size: 1.8rem; font-weight: bold; color: #fff; margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <span>Sonos Sync Calibration</span>
+      <span class="badge">Acoustic</span>
+    </h1>
+    <p>Calibrate the millisecond latency offset between your S1 (v1) and S2 (v2) speakers so they play without echo or phase delay.</p>
+
+    <div class="step-card">
+      <strong>Instructions:</strong>
+      <ol style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.9rem; color: #ccc;">
+        <li>Stand roughly equidistant between your S2 and S1 speakers with your phone.</li>
+        <li>Tap <strong>Start Calibration</strong> and grant microphone access.</li>
+        <li>Two brief test chimes will play (Speaker A, then Speaker B after 2 seconds).</li>
+        <li>The system calculates the exact millisecond offset automatically.</li>
+      </ol>
+    </div>
+
+    <canvas id="scopeCanvas"></canvas>
+    <div id="statusText" class="status">Microphone ready</div>
+
+    <button id="startBtn" class="btn">
+      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      Start Acoustic Calibration
+    </button>
+
+    <div id="resultBox" class="result-box">
+      <h3>Calibration Complete!</h3>
+      <div id="resultOffset" class="result-val">0 ms</div>
+      <p id="resultDesc" style="margin: 4px 0 12px 0;">Delay compensation calculated.</p>
+      <button id="applyBtn" class="btn" style="background: var(--success);">Save to Home Assistant</button>
+    </div>
+
+    <div class="slider-box">
+      <div class="slider-row">
+        <span>Manual Fine-Tuning:</span>
+        <span id="sliderVal">0 ms</span>
+      </div>
+      <input type="range" id="delaySlider" min="-500" max="500" step="1" value="0">
+      <button id="testSyncBtn" class="btn btn-secondary">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        Play Metronome Click Test
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let audioCtx = null;
+    let micStream = null;
+    let analyser = null;
+    let recordedSamples = [];
+    let isRecording = false;
+    const SAMPLE_RATE = 44100;
+    const EXPECTED_GAP_MS = 2000;
+
+    const canvas = document.getElementById("scopeCanvas");
+    const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const statusText = document.getElementById("statusText");
+    const resultBox = document.getElementById("resultBox");
+    const resultOffset = document.getElementById("resultOffset");
+    const resultDesc = document.getElementById("resultDesc");
+    const applyBtn = document.getElementById("applyBtn");
+    const delaySlider = document.getElementById("delaySlider");
+    const sliderVal = document.getElementById("sliderVal");
+    const testSyncBtn = document.getElementById("testSyncBtn");
+
+    let calculatedOffset = 0;
+
+    // Resize canvas
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.clientHeight * window.devicePixelRatio;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // Slider listener
+    delaySlider.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value);
+      sliderVal.textContent = (val > 0 ? "+" : "") + val + " ms";
+    });
+
+    delaySlider.addEventListener("change", async (e) => {
+      const val = parseInt(e.target.value);
+      await saveDelayOffset(val);
+    });
+
+    // Reference chirp generation (matches calibration.py)
+    function generateRefChirp(sr = SAMPLE_RATE) {
+      const duration = 0.08;
+      const f0 = 800, f1 = 4000;
+      const n = Math.floor(sr * duration);
+      const k = (f1 - f0) / duration;
+      const chirp = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        const win = 0.5 * (1 - Math.cos(2 * Math.PI * i / (n - 1)));
+        const phase = 2 * Math.PI * (f0 * t + 0.5 * k * t * t);
+        chirp[i] = win * Math.sin(phase);
+      }
+      return chirp;
+    }
+
+    // Live visualizer loop
+    function drawScope() {
+      requestAnimationFrame(drawScope);
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (!analyser) return;
+      const buffer = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteTimeDomainData(buffer);
+
+      ctx.lineWidth = 2 * window.devicePixelRatio;
+      ctx.strokeStyle = isRecording ? "#ff9800" : "#03a9f4";
+      ctx.beginPath();
+      const sliceWidth = canvas.width / buffer.length;
+      let x = 0;
+      for (let i = 0; i < buffer.length; i++) {
+        const v = buffer[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      ctx.stroke();
+    }
+    drawScope();
+
+    startBtn.addEventListener("click", async () => {
+      resultBox.style.display = "none";
+      statusText.className = "status highlight";
+      statusText.textContent = "Requesting microphone permission...";
+
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+        }
+        if (audioCtx.state === "suspended") {
+          await audioCtx.resume();
+        }
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          }
+        });
+
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        source.connect(analyser);
+
+        // Recording node
+        const scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+        recordedSamples = [];
+        isRecording = true;
+
+        scriptNode.onaudioprocess = (e) => {
+          if (!isRecording) return;
+          const input = e.inputBuffer.getChannelData(0);
+          for (let i = 0; i < input.length; i++) {
+            recordedSamples.push(input[i]);
+          }
+        };
+
+        source.connect(scriptNode);
+        scriptNode.connect(audioCtx.destination);
+
+        startBtn.disabled = true;
+        statusText.textContent = "Listening... triggering calibration chimes on speakers...";
+
+        // Trigger Home Assistant to play the calibration chirps
+        const resp = await fetch("/api/sonos_unified/calibration/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        if (!resp.ok) {
+          throw new Error("Failed to trigger test audio from Home Assistant");
+        }
+
+        statusText.textContent = "Chimes playing... keep phone steady...";
+
+        // Wait 4 seconds to capture both chimes and reverberation
+        await new Promise(r => setTimeout(r, 4200));
+
+        isRecording = false;
+        scriptNode.disconnect();
+        source.disconnect();
+        startBtn.disabled = false;
+
+        statusText.textContent = "Analyzing acoustic peaks...";
+        processRecording();
+
+      } catch (err) {
+        console.error(err);
+        statusText.className = "status";
+        statusText.textContent = "Error: " + err.message;
+        startBtn.disabled = false;
+        isRecording = false;
+      }
+    });
+
+    function processRecording() {
+      const refChirp = generateRefChirp(SAMPLE_RATE);
+      const step = 2;
+      const refLen = refChirp.length;
+      const sigLen = recordedSamples.length;
+
+      if (sigLen < refLen * 2) {
+        statusText.textContent = "Recording too short, please retry.";
+        return;
+      }
+
+      // Fast cross-correlation
+      const correlations = [];
+      for (let i = 0; i < sigLen - refLen; i += step) {
+        let corr = 0;
+        for (let j = 0; j < refLen; j += 4) {
+          corr += recordedSamples[i + j] * refChirp[j];
+        }
+        correlations.push(corr);
+      }
+
+      // Find top two peaks separated by roughly EXPECTED_GAP_MS
+      const minSep = Math.floor((EXPECTED_GAP_MS * 0.7 * SAMPLE_RATE) / (1000 * step));
+      let p1 = 0, v1 = -1e9;
+      for (let i = 0; i < correlations.length; i++) {
+        if (correlations[i] > v1) { v1 = correlations[i]; p1 = i; }
+      }
+
+      let p2 = -1, v2 = -1e9;
+      for (let i = 0; i < correlations.length; i++) {
+        if (Math.abs(i - p1) >= minSep && correlations[i] > v2) {
+          v2 = correlations[i]; p2 = i;
+        }
+      }
+
+      if (p2 === -1) {
+        statusText.textContent = "Could not cleanly detect both chimes. Please move closer to speakers and retry.";
+        return;
+      }
+
+      const firstPeak = Math.min(p1, p2);
+      const secondPeak = Math.max(p1, p2);
+      const measuredGapSamples = (secondPeak - firstPeak) * step;
+      const measuredGapMs = (measuredGapSamples / SAMPLE_RATE) * 1000;
+      calculatedOffset = Math.round(measuredGapMs - EXPECTED_GAP_MS);
+
+      statusText.className = "status success";
+      statusText.textContent = "Analysis complete!";
+
+      resultOffset.textContent = (calculatedOffset > 0 ? "+" : "") + calculatedOffset + " ms";
+      if (calculatedOffset > 0) {
+        resultDesc.textContent = `Secondary speaker lags primary speaker by ${calculatedOffset} ms.`;
+      } else if (calculatedOffset < 0) {
+        resultDesc.textContent = `Secondary speaker leads primary speaker by ${Math.abs(calculatedOffset)} ms.`;
+      } else {
+        resultDesc.textContent = "Speakers are in exact lockstep!";
+      }
+
+      resultBox.style.display = "block";
+      delaySlider.value = calculatedOffset;
+      sliderVal.textContent = (calculatedOffset > 0 ? "+" : "") + calculatedOffset + " ms";
+    }
+
+    applyBtn.addEventListener("click", async () => {
+      await saveDelayOffset(calculatedOffset);
+    });
+
+    async function saveDelayOffset(offsetMs) {
+      statusText.textContent = "Saving delay offset to Home Assistant...";
+      try {
+        const resp = await fetch("/api/sonos_unified/calibration/result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ delay_ms: offsetMs })
+        });
+        if (resp.ok) {
+          statusText.className = "status success";
+          statusText.textContent = `Offset of ${offsetMs} ms applied successfully!`;
+        } else {
+          throw new Error("Server rejected calibration result");
+        }
+      } catch (err) {
+        statusText.className = "status";
+        statusText.textContent = "Failed to save: " + err.message;
+      }
+    }
+
+    testSyncBtn.addEventListener("click", async () => {
+      statusText.className = "status highlight";
+      statusText.textContent = "Playing synchronized metronome test...";
+      try {
+        const resp = await fetch("/api/sonos_unified/test_sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (resp.ok) {
+          statusText.textContent = "Listen to the clicks: they should sound like a single sharp tick.";
+        }
+      } catch (err) {
+        statusText.textContent = "Error running test: " + err.message;
+      }
+    });
+
+    // Load existing offset on start
+    async function loadCurrentOffset() {
+      try {
+        const resp = await fetch("/api/sonos_unified/calibration/current");
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.delay_ms !== undefined) {
+            delaySlider.value = data.delay_ms;
+            sliderVal.textContent = (data.delay_ms > 0 ? "+" : "") + data.delay_ms + " ms";
+          }
+        }
+      } catch (e) {}
+    }
+    loadCurrentOffset();
+  </script>
+</body>
+</html>

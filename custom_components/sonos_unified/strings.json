@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sonos Unified Configuration",
+        "description": "Create a unified Sonos player bridging S1 and S2 generations into a synchronized group.",
+        "data": {
+          "name": "Group Name",
+          "primary_speaker": "Primary Coordinator Speaker (e.g. S2 Living Room)",
+          "secondary_speakers": "Secondary Speakers (e.g. S1 Kitchen)",
+          "delay_ms": "Initial Delay Compensation (ms)"
+        }
+      }
+    },
+    "error": {
+      "primary_in_secondary": "The primary speaker cannot also be selected as a secondary speaker."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sonos Unified Options",
+        "description": "Adjust the delay offset or calibrate via your phone microphone at /api/sonos_unified/calibrate",
+        "data": {
+          "delay_ms": "Delay Compensation (ms)",
+          "secondary_speakers": "Secondary Member Speakers"
+        }
+      }
+    }
+  }
+}

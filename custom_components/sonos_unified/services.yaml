@@ -1,0 +1,15 @@
+set_delay_offset:
+  name: Set Delay Offset
+  description: Adjust the millisecond delay compensation between S1 and S2 speakers.
+  fields:
+    delay_ms:
+      name: Delay Offset (ms)
+      description: Latency offset in milliseconds (positive means secondary lags primary).
+      required: true
+      example: 185
+      selector:
+        number:
+          min: -1000
+          max: 1000
+          step: 1
+          unit_of_measurement: ms

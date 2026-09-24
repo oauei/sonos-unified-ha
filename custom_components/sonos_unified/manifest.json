@@ -1,0 +1,11 @@
+{
+  "domain": "sonos_unified",
+  "name": "Sonos Unified",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/sonos",
+  "requirements": [],
+  "dependencies": ["http", "media_player"],
+  "codeowners": ["@connor"],
+  "iot_class": "local_push"
+}
