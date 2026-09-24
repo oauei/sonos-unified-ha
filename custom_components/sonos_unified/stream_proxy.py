@@ -37,6 +37,19 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_base_url(hass: HomeAssistant) -> str:
+    """Retrieve base URL safely with fallback."""
+    try:
+        return get_url(hass, prefer_external=False, allow_ip=True)
+    except Exception:  # noqa: BLE001
+        pass
+    if hass.config.internal_url:
+        return hass.config.internal_url.rstrip("/")
+    if hass.config.external_url:
+        return hass.config.external_url.rstrip("/")
+    return ""
+
+
 class CalibrationPageView(HomeAssistantView):
     """View to serve the acoustic calibration web page."""
 
@@ -122,7 +135,7 @@ class CalibrationStartView(HomeAssistantView):
             )
 
         secondary_entity = secondary_entities[0]
-        base_url = get_url(self.hass, prefer_external=False)
+        base_url = _get_base_url(self.hass)
         chirp_url = f"{base_url}{API_CHIRP_URL}"
 
         _LOGGER.info("Starting acoustic calibration playback on %s and %s", primary_entity, secondary_entity)
@@ -237,7 +250,7 @@ class TestSyncView(HomeAssistantView):
         secondary_entities = data.get(CONF_SECONDARY_SPEAKERS, [])
         delay_ms = options.get(CONF_DELAY_MS, data.get(CONF_DELAY_MS, 0))
 
-        base_url = get_url(self.hass, prefer_external=False)
+        base_url = _get_base_url(self.hass)
         click_url = f"{base_url}{API_CLICK_URL}"
 
         # If secondary lags (delay_ms > 0), start secondary earlier by delay_ms

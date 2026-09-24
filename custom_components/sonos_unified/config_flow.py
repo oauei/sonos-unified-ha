@@ -79,21 +79,18 @@ class SonosUnifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
-    @staticmethod
+    @classmethod
     @callback
     def async_get_options_flow(
+        cls,
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Get the options flow for this handler."""
-        return SonosUnifiedOptionsFlowHandler(config_entry)
+        return SonosUnifiedOptionsFlowHandler()
 
 
 class SonosUnifiedOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Sonos Unified."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

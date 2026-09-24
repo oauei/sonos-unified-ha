@@ -383,10 +383,29 @@ class SonosUnifiedMediaPlayer(MediaPlayerEntity):
         media_content_type: str | None = None,
         media_content_id: str | None = None,
     ) -> Any:
-        """Browse media by delegating directly to the primary Sonos speaker."""
-        primary_entity_component = self.hass.data[MP_DOMAIN].get_entity(self.primary_entity)
-        if primary_entity_component and hasattr(primary_entity_component, "async_browse_media"):
-            return await primary_entity_component.async_browse_media(
-                media_content_type, media_content_id
+        """Browse media by delegating directly to the primary Sonos speaker or media_source."""
+        try:
+            component = self.hass.data.get(MP_DOMAIN)
+            if component and hasattr(component, "get_entity"):
+                primary_entity_component = component.get_entity(self.primary_entity)
+                if primary_entity_component and hasattr(
+                    primary_entity_component, "async_browse_media"
+                ):
+                    return await primary_entity_component.async_browse_media(
+                        media_content_type, media_content_id
+                    )
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug(
+                "Could not delegate browse_media directly to %s: %s",
+                self.primary_entity,
+                exc,
+            )
+
+        if "media_source" in self.hass.config.components:
+            from homeassistant.components import media_source
+
+            return await media_source.async_browse_media(
+                self.hass, media_content_id, content_filter=lambda item: True
             )
         return None
+
